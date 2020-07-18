@@ -15,26 +15,26 @@ example, the layout example in `dns_layout_example.json` looks like this:
 
 ```json
 [
-	{
-		"domain":		"my-domain.de",
-		"records": [
-			{
-				"type":			"A",
-				"hostname":		"@",
-				"destination":	"12.34.42.42"
-			},
-			{
-				"type":			"A",
-				"hostname":		"*",
-				"destination":	"12.34.42.42"
-			},
-			{
-				"type":			"MX",
-				"hostname":		"my-domain.de",
-				"destination":	"my-domain.de"
-			}
-		]
-	}
+    {
+        "domain":       "my-domain.de",
+        "records": [
+            {
+                "type":         "A",
+                "hostname":     "@",
+                "destination":  "12.34.42.42"
+            },
+            {
+                "type":         "A",
+                "hostname":     "*",
+                "destination":  "12.34.42.42"
+            },
+            {
+                "type":         "MX",
+                "hostname":     "my-domain.de",
+                "destination":  "my-domain.de"
+            }
+        ]
+    }
 ]
 ```
 
