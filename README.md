@@ -1,6 +1,6 @@
 # netcupdns
 netcupdns is a Python package that can interface with the (public,
-non-reseller) DNS API of the [(excellent) hoster NetCup](https://www.netcup.de).
+non-reseller) DNS API of the [(excellent) ISP Netcup](https://www.netcup.de).
 A command-line interface is provided that allows easy batch-updates of all your
 domain records. You only need to create an API key in the customer control
 interface, put those in a `credentials.json` file, layout your DNS in a
