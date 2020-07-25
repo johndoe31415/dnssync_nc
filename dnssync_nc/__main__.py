@@ -1,37 +1,37 @@
 #!/usr/bin/python3
-#	netcupdns - DNS API interface for the hoster Netcup
+#	dnssync_nc - DNS API interface for the ISP netcup
 #	Copyright (C) 2020-2020 Johannes Bauer
 #
-#	This file is part of netcupdns.
+#	This file is part of dnssync_nc.
 #
-#	netcupdns is free software; you can redistribute it and/or modify
+#	dnssync_nc is free software; you can redistribute it and/or modify
 #	it under the terms of the GNU General Public License as published by
 #	the Free Software Foundation; this program is ONLY licensed under
 #	version 3 of the License, later versions are explicitly excluded.
 #
-#	netcupdns is distributed in the hope that it will be useful,
+#	dnssync_nc is distributed in the hope that it will be useful,
 #	but WITHOUT ANY WARRANTY; without even the implied warranty of
 #	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #	GNU General Public License for more details.
 #
 #	You should have received a copy of the GNU General Public License
-#	along with netcupdns; if not, write to the Free Software
+#	along with dnssync_nc; if not, write to the Free Software
 #	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #	Johannes Bauer <JohannesBauer@gmx.de>
 
 import sys
 import json
-import netcupdns
+import dnssync_nc
 from .FriendlyArgumentParser import FriendlyArgumentParser
 
 class NetcupCLI():
 	def __init__(self, args):
 		self._args = args
-		self._nc = netcupdns.NetcupConnection.from_credentials_file(self._args.credentials)
+		self._nc = dnssync_nc.NetcupConnection.from_credentials_file(self._args.credentials)
 
 	def _parse_dns_record(self, record_data):
-		return netcupdns.DNSRecord.new(record_type = record_data["type"], hostname = record_data["hostname"], destination = record_data["destination"], priority = record_data.get("priority"))
+		return dnssync_nc.DNSRecord.new(record_type = record_data["type"], hostname = record_data["hostname"], destination = record_data["destination"], priority = record_data.get("priority"))
 
 	def _process_domain_layout(self, domain_layout):
 		if self._args.verbose >= 2:
@@ -79,7 +79,7 @@ class NetcupCLI():
 					layout = json.load(f)
 				self._process_layout(layout_file, layout)
 
-parser = FriendlyArgumentParser(description = "Update DNS records using the Netcup DNS API.")
+parser = FriendlyArgumentParser(description = "Update DNS records using the netcup DNS API.")
 parser.add_argument("-c", "--credentials", metavar = "filename", type = str, default = "credentials.json", help = "Specifies credential file to use. Defaults to %(default)s.")
 parser.add_argument("--commit", action = "store_true", help = "By default, only records are read and printed on the command line. This actually puts into effect the requested changes.")
 parser.add_argument("-v", "--verbose", action = "count", default = 0, help = "Increases verbosity. Can be specified multiple times to increase.")

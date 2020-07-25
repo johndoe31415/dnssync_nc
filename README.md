@@ -1,10 +1,14 @@
-# netcupdns
-netcupdns is a Python package that can interface with the (public,
-non-reseller) DNS API of the [(excellent) ISP Netcup](https://www.netcup.de).
+# dnssync_nc
+dnssync_nc is a Python package that can interface with the (public,
+non-reseller) DNS API of the [(excellent) ISP netcup](https://www.netcup.de).
 A command-line interface is provided that allows easy batch-updates of all your
 domain records. You only need to create an API key in the customer control
 interface, put those in a `credentials.json` file, layout your DNS in a
 different JSON file and can commit that layout.
+
+## Affiliation
+I am not affiliated in any way with netcup nor have I received any money for
+coding this software from anyone.
 
 ## Usage of the CLI
 For the command line interface, you need a credentials file which looks like
@@ -41,10 +45,10 @@ example, the layout example in `dns_layout_example.json` looks like this:
 The CLI is fairly straightforward, the help page is as follows:
 
 ```
-usage: netcupcli [-h] [-c filename] [--commit] [-v]
-                 layout_file [layout_file ...]
+usage: dnssync-cli [-h] [-c filename] [--commit] [-v]
+                   layout_file [layout_file ...]
 
-Update DNS records using the Netcup DNS API.
+Update DNS records using the netcup DNS API.
 
 positional arguments:
   layout_file           DNS layout file(s) that should be processed
@@ -64,7 +68,7 @@ optional arguments:
 If you just want to see what your changes would look like, simply do:
 
 ```
-$ ./netcupcli -vv dns_layout.json
+$ ./dnssync-cli -vv dns_layout.json
 Processing layout file dns_layout.json: 1 domain entries found.
 Layout of domain my-domain.de consists of 3 DNS records.
 Current DNS records of my-domain.de (3 records):
@@ -84,7 +88,7 @@ Not updating record of my-domain.de to live system (no commit requested).
 ```
 
 If you want to put those changes in effect, simply add `--commit` to the
-command line and your changes will be pushed to Netcup.
+command line and your changes will be pushed to netcup.
 
 ## Usage of the API
 Usage of the API is quite straightforward and an example is provided in the
@@ -92,7 +96,7 @@ given `api_example.py` file. You can easily create a connection to the API using
 the convenience classmethod `NetcupConnection.from_credentials_file`:
 
 ```python
-nca = netcupdns.NetcupConnection.from_credentials_file("credentials.json")
+nca = dnssync_nc.NetcupConnection.from_credentials_file("credentials.json")
 ```
 
 Then, `login` and `logout` can be automatically performed when you use the
@@ -123,7 +127,7 @@ present entries, add new ones, then commit the changes:
 ```python
 records = nca.info_dns_records("my-domain.de")
 records.delete_all()
-records.add(netcupdns.DNSRecord.new("A", "@", "123.123.123.123"))
+records.add(dnssync_nc.DNSRecord.new("A", "@", "123.123.123.123"))
 updated_records = nca.update_dns_records(new_records)
 updated_records.dump()
 ```
