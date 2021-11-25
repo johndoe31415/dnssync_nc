@@ -1,5 +1,5 @@
 #	dnssync_nc - DNS API interface for the ISP netcup
-#	Copyright (C) 2020-2020 Johannes Bauer
+#	Copyright (C) 2020-2021 Johannes Bauer
 #
 #	This file is part of dnssync_nc.
 #
@@ -64,6 +64,9 @@ class DNSRecord():
 	def deleted(self):
 		return self._delete
 
+	def _cmpkey(self):
+		return (self.record_type, self.hostname, self.destination, self.priority)
+
 	def delete(self):
 		self._delete = True
 
@@ -84,6 +87,8 @@ class DNSRecord():
 	def deserialize(cls, data):
 		if "priority" in data:
 			priority = int(data["priority"])
+			if priority == 0:
+				priority = None
 		else:
 			priority = None
 		record = cls(record_id = int(data["id"]), record_type = data["type"], hostname = data["hostname"], destination = data["destination"], priority = priority)
@@ -101,11 +106,24 @@ class DNSRecord():
 			"type":			self.record_type,
 			"hostname":		self.hostname,
 			"destination":	self.destination,
-			"priority":		self.priority,
 			"deleterecord":	self.deleted,
 			"state":		None,
 		}
+		if self.priority is not None:
+			result["priority"] = self.priority
 		return result
+
+	def __eq__(self, other):
+		return isinstance(other, DNSRecord) and (self._cmpkey() == other._cmpkey())
+
+	def __neq__(self, other):
+		return not (self == other)
+
+	def __hash__(self):
+		return hash(self._cmpkey())
+
+	def __repr__(self):
+		return "DNSRecord<%s>" % (str(self._cmpkey()))
 
 class DNSRecordSet():
 	def __init__(self, domainname):
