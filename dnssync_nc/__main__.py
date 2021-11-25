@@ -96,7 +96,10 @@ class NetcupCLI():
 			domain_name = domain_layout["domain"]
 			if (len(self._args.domain_name) > 0) and (domain_name not in self._args.domain_name):
 				continue
-			self._process_domain_layout(domain_layout)
+			try:
+				self._process_domain_layout(domain_layout)
+			except dnssync_nc.NetcupAPIError as e:
+				print("Failed to update %s: [%s] %s" % (domain_layout["domain"], e.__class__.__name__, str(e)))
 
 	def run(self):
 		with self._nc:

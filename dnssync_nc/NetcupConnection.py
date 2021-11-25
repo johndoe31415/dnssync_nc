@@ -1,5 +1,5 @@
 #	dnssync_nc - DNS API interface for the ISP netcup
-#	Copyright (C) 2020-2020 Johannes Bauer
+#	Copyright (C) 2020-2021 Johannes Bauer
 #
 #	This file is part of dnssync_nc.
 #
@@ -86,7 +86,9 @@ class NetcupConnection():
 			"domainname":				domainname,
 		})
 		if response["status"] != 200:
-			raise ServerResponseError("Unable to retrieve DNS records:", response)
+			raise ServerResponseError("Unable to retrieve DNS records (no HTTP 200):", response)
+		if response["data"]["status"] != "success":
+			raise ServerResponseError("Unable to retrieve DNS records (no 'success' status): %s" % (response["data"]["longmessage"]))
 		return DNSRecordSet.deserialize(domainname, response["data"]["responsedata"])
 
 	def info_dns_zone(self, domainname):
