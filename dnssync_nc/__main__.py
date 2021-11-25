@@ -33,9 +33,18 @@ class NetcupCLI():
 	def _parse_dns_record(self, record_data):
 		return dnssync_nc.DNSRecord.new(record_type = record_data["type"], hostname = record_data["hostname"], destination = record_data["destination"], priority = record_data.get("priority"))
 
-	def _process_domain_layout(self, domain_layout):
+	@staticmethod
+	def _subs(text, variables):
+		for (search, replace) in variables.items():
+			text = text.replace(search, replace)
+		return text
+
+	def _parse_dns_template(self, template_record_data, template_vars):
+		return dnssync_nc.DNSRecord.new(record_type = template_record_data["type"], hostname = self._subs(template_record_data["hostname"], template_vars), destination = self._subs(template_record_data["destination"], template_vars), priority = template_record_data.get("priority"))
+
+	def _process_domain_layout(self, domain_layout, new_dns_records):
 		if self._args.verbose >= 2:
-			print("Layout of domain %s consists of %d DNS records." % (domain_layout["domain"], len(domain_layout["records"])))
+			print("Layout of domain %s consists of %d DNS records." % (domain_layout["domain"], len(new_dns_records)))
 
 		current_dns_records = self._nc.info_dns_records(domain_layout["domain"])
 		if (self._args.verbose >= 2) or (not self._args.commit):
@@ -44,7 +53,6 @@ class NetcupCLI():
 			print()
 
 
-		new_dns_records = [ self._parse_dns_record(new_dns_record) for new_dns_record in domain_layout["records"] ]
 		if self._args.hard_reset_all:
 			current_dns_records.delete_all()
 			for new_dns_record in new_dns_records:
@@ -92,12 +100,27 @@ class NetcupCLI():
 	def _process_layout(self, layout_file, layout):
 		if self._args.verbose >= 1:
 			print("Processing layout file %s: %d domain entries found." % (layout_file, len(layout)))
-		for domain_layout in layout:
+
+		known_templates = layout.get("templates", { })
+		for domain_layout in layout["domains"]:
 			domain_name = domain_layout["domain"]
 			if (len(self._args.domain_name) > 0) and (domain_name not in self._args.domain_name):
 				continue
+
+			new_dns_records = [ self._parse_dns_record(new_dns_record) for new_dns_record in domain_layout.get("records", [ ]) ]
+			if "template" in domain_layout:
+				template_name = domain_layout["template"]
+				if template_name not in known_templates:
+					print("Cannot create records for %s: no such template \"%s\"" % (domain_name, template_name))
+					continue
+				template = known_templates[template_name]
+				template_vars = {
+					"${domain}":	domain_name,
+				}
+				new_dns_records += [ self._parse_dns_template(template_record, template_vars) for template_record in template ]
+
 			try:
-				self._process_domain_layout(domain_layout)
+				self._process_domain_layout(domain_layout, new_dns_records)
 			except dnssync_nc.NetcupAPIError as e:
 				print("Failed to update %s: [%s] %s" % (domain_layout["domain"], e.__class__.__name__, str(e)))
 

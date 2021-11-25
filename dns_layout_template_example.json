@@ -1,0 +1,31 @@
+{
+	"templates": {
+		"simple-template": [
+			{
+				"type":			"A",
+				"hostname":		"@",
+				"destination":	"12.34.42.42"
+			},
+			{
+				"type":			"A",
+				"hostname":		"*",
+				"destination":	"12.34.42.42"
+			},
+			{
+				"type":			"MX",
+				"hostname":		"${domain}",
+				"destination":	"${domain}"
+			}
+		]
+	},
+	"domains": [
+		{
+			"domain":		"my-domain.de",
+			"template":		"simple-template"
+		},
+		{
+			"domain":		"my-other-domain.de",
+			"template":		"simple-template"
+		}
+	]
+}

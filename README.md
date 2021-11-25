@@ -18,10 +18,39 @@ domains and multiply layout files can be used by the CLI in one pass. For
 example, the layout example in `dns_layout_example.json` looks like this:
 
 ```json
-[
-    {
-        "domain":       "my-domain.de",
-        "records": [
+{
+    "domains": [
+        {
+            "domain":       "my-domain.de",
+            "records": [
+                {
+                    "type":         "A",
+                    "hostname":     "@",
+                    "destination":  "12.34.42.42"
+                },
+                {
+                    "type":         "A",
+                    "hostname":     "*",
+                    "destination":  "12.34.42.42"
+                },
+                {
+                    "type":         "MX",
+                    "hostname":     "my-domain.de",
+                    "destination":  "my-domain.de"
+                }
+            ]
+        }
+    ]
+}
+```
+
+If you have multiple domains which are almost identically configured, you can
+also use the simple but powerful templating mechanism:
+
+```json
+{
+    "templates": {
+        "simple-template": [
             {
                 "type":         "A",
                 "hostname":     "@",
@@ -34,18 +63,33 @@ example, the layout example in `dns_layout_example.json` looks like this:
             },
             {
                 "type":         "MX",
-                "hostname":     "my-domain.de",
-                "destination":  "my-domain.de"
+                "hostname":     "${domain}",
+                "destination":  "${domain}"
             }
         ]
-    }
-]
+    },
+    "domains": [
+        {
+            "domain":       "my-domain.de",
+            "template":     "simple-template"
+        },
+        {
+            "domain":       "my-other-domain.de",
+            "template":     "simple-template"
+        }
+    ]
+}
 ```
+
+Here, you specify the template only once and the ${domain} variable is
+substituted for each individual domain, cutting down on copy/paste work
+substantially if you manage many domains.
 
 The CLI is fairly straightforward, the help page is as follows:
 
 ```
-usage: dnssync-cli [-h] [-c filename] [--commit] [-v]
+usage: dnssync-cli [-h] [--hard-reset-all] [-d domainname] [-c filename]
+                   [--commit] [-v]
                    layout_file [layout_file ...]
 
 Update DNS records using the netcup DNS API.
@@ -55,6 +99,12 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --hard-reset-all      Delete all existing DNS entries and re-add them one by
+                        one instead of only deleting those entries which are
+                        unnecessary.
+  -d domainname, --domain-name domainname
+                        Only affect these domain(s). Can be given multiple
+                        times. By default, all domains are affected.
   -c filename, --credentials filename
                         Specifies credential file to use. Defaults to
                         credentials.json.
