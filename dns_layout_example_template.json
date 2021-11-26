@@ -13,7 +13,7 @@
 			},
 			{
 				"type":			"MX",
-				"hostname":		"${domain}",
+				"hostname":		"@",
 				"destination":	"${domain}"
 			}
 		]

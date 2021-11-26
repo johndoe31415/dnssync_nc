@@ -134,6 +134,13 @@ class DNSRecordSet():
 	def domainname(self):
 		return self._domainname
 
+	@classmethod
+	def from_records(cls, domainname, dns_records):
+		dns_record_set = cls(domainname)
+		for dns_record in dns_records:
+			dns_record_set.add(dns_record)
+		return dns_record_set
+
 	def delete_all(self):
 		for record in self._records:
 			record.delete()

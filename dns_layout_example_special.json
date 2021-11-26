@@ -1,0 +1,41 @@
+{
+	"domains": [
+		{
+			"domain":		"my-domain.de",
+			"records": [
+				{
+					"type":			"A",
+					"hostname":		"@",
+					"destination":	"12.34.42.42"
+				},
+				{
+					"type":			"A",
+					"hostname":		"*",
+					"destination":	"12.34.42.42"
+				},
+				{
+					"type":			"MX",
+					"hostname":		"@",
+					"destination":	"my-domain.de"
+				},
+				{
+					"type":			"TXT",
+					"hostname":		"dkim202111-ed25519._domainkey",
+					"destination":	{
+						"type": "dkim",
+						"pubkey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAdvpXHFqOFA4gkFNoOzEfS79ZUTSy76BvN8JrhskGjLw=\n-----END PUBLIC KEY-----"
+					}
+				},
+				{
+					"type":			"TXT",
+					"hostname":		"dkim202111-rsa._domainkey",
+					"destination":	{
+						"type": "dkim",
+						"pubkey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsSb1gSoKmOlZOIwehbvW\nAPWeGDqeqWvSbjKfziyIf47k4chstCscFBEeWaj7nRJ+aBVOU9Ti5bF4cCUhh6LG\nMgEymMi8TaN5gFPMHOMR30iBo/80/tNvp4vYXBNsPDo/JRIcqyuAANTxRtBWLpzH\nRUO6gHpD0jRjOBjGP011q7QQS+PDkE4azP5zyGDoai6TO/jjexiuZsMx6WGghNBN\ng9k6PUDutt/WZicvWcaOoRzVvTT2bc1g91xd8R8fMrsi42YrNnrYhfzxFqr9ouOQ\nWx6xh4J4kanotJLqvrz5oJZusqd5qe0UdckeZpeg9d2fmNNVjl0KLjMrcRwMaQjW\nvwIDAQAB\n-----END PUBLIC KEY-----",
+						"hash": "sha256"
+					}
+				}
+			]
+		}
+	]
+}

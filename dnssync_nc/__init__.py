@@ -22,4 +22,5 @@
 from .DNSZone import DNSZone
 from .DNSRecords import DNSRecord, DNSRecordSet
 from .NetcupConnection import NetcupConnection
-from .Exceptions import NetcupAPIError
+from .Exceptions import DNSSyncError
+from .SpecialDestination import SpecialDestination

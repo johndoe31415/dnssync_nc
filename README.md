@@ -35,7 +35,7 @@ example, the layout example in `dns_layout_example.json` looks like this:
                 },
                 {
                     "type":         "MX",
-                    "hostname":     "my-domain.de",
+                    "hostname":     "@",
                     "destination":  "my-domain.de"
                 }
             ]
@@ -63,7 +63,7 @@ also use the simple but powerful templating mechanism:
             },
             {
                 "type":         "MX",
-                "hostname":     "${domain}",
+                "hostname":     "@",
                 "destination":  "${domain}"
             }
         ]
@@ -84,6 +84,69 @@ also use the simple but powerful templating mechanism:
 Here, you specify the template only once and the ${domain} variable is
 substituted for each individual domain, cutting down on copy/paste work
 substantially if you manage many domains.
+
+Lasly, a "special destination" syntax supports things like putting together a
+DKIM record (currently only DKIM is supported) from the root components. I.e.,
+it automatically extracts the important pieces from given public keys (what
+this is depends on the keytype). For example:
+
+```json
+{
+    "domains": [
+        {
+            "domain":       "my-domain.de",
+            "records": [
+                {
+                    "type":         "A",
+                    "hostname":     "@",
+                    "destination":  "12.34.42.42"
+                },
+                {
+                    "type":         "A",
+                    "hostname":     "*",
+                    "destination":  "12.34.42.42"
+                },
+                {
+                    "type":         "MX",
+                    "hostname":     "@",
+                    "destination":  "my-domain.de"
+                },
+                {
+                    "type":         "TXT",
+                    "hostname":     "dkim202111-ed25519._domainkey",
+                    "destination":  {
+                        "type": "dkim",
+                        "pubkey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAdvpXHFqOFA4gkFNoOzEfS79ZUTSy76BvN8JrhskGjLw=\n-----END PUBLIC KEY-----"
+                    }
+                },
+                {
+                    "type":         "TXT",
+                    "hostname":     "dkim202111-rsa._domainkey",
+                    "destination":  {
+                        "type": "dkim",
+                        "pubkey": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsSb1gSoKmOlZOIwehbvW\nAPWeGDqeqWvSbjKfziyIf47k4chstCscFBEeWaj7nRJ+aBVOU9Ti5bF4cCUhh6LG\nMgEymMi8TaN5gFPMHOMR30iBo/80/tNvp4vYXBNsPDo/JRIcqyuAANTxRtBWLpzH\nRUO6gHpD0jRjOBjGP011q7QQS+PDkE4azP5zyGDoai6TO/jjexiuZsMx6WGghNBN\ng9k6PUDutt/WZicvWcaOoRzVvTT2bc1g91xd8R8fMrsi42YrNnrYhfzxFqr9ouOQ\nWx6xh4J4kanotJLqvrz5oJZusqd5qe0UdckeZpeg9d2fmNNVjl0KLjMrcRwMaQjW\nvwIDAQAB\n-----END PUBLIC KEY-----",
+                        "hash": "sha256"
+                    }
+                }
+            ]
+        }
+    ]
+}
+```
+
+Using this will create the following DNS record:
+
+```
+     1)              A    @ -> 12.34.42.42
+     2)              A    * -> 12.34.42.42
+     3)              MX   @ -> my-domain.de priority 10
+     4)              TXT  dkim202111-ed25519._domainkey -> v=DKIM1;k=ed25519;p=dvpXHFqOFA4gkFNoOzEfS79ZUTSy76BvN8JrhskGjLw=
+     5)              TXT  dkim202111-rsa._domainkey -> v=DKIM1;k=rsa;h=sha256;p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQE...
+```
+
+You can clearly see that for the RSA key, the PEM data is taken directly while
+for the Ed25519 key, only the 32 bytes long pubkey is extracted into the DKIM
+record.
 
 The CLI is fairly straightforward, the help page is as follows:
 

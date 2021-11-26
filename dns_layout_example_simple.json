@@ -15,7 +15,7 @@
 				},
 				{
 					"type":			"MX",
-					"hostname":		"my-domain.de",
+					"hostname":		"@",
 					"destination":	"my-domain.de"
 				}
 			]

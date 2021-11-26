@@ -30,21 +30,33 @@ class NetcupCLI():
 		self._args = args
 		self._nc = dnssync_nc.NetcupConnection.from_credentials_file(self._args.credentials)
 
+	def _parse_destination(self, packet):
+		if isinstance(packet, str):
+			return packet
+		else:
+			return dnssync_nc.SpecialDestination.parse(packet)
+
 	def _parse_dns_record(self, record_data):
-		return dnssync_nc.DNSRecord.new(record_type = record_data["type"], hostname = record_data["hostname"], destination = record_data["destination"], priority = record_data.get("priority"))
+		return dnssync_nc.DNSRecord.new(record_type = record_data["type"], hostname = record_data["hostname"], destination = self._parse_destination(record_data["destination"]), priority = record_data.get("priority"))
 
 	@staticmethod
 	def _subs(text, variables):
-		for (search, replace) in variables.items():
-			text = text.replace(search, replace)
-		return text
+		if isinstance(text, str):
+			for (search, replace) in variables.items():
+				text = text.replace(search, replace)
+			return text
+		else:
+			return { key: self._subs(value) for (key, value) in text.items() }
 
 	def _parse_dns_template(self, template_record_data, template_vars):
-		return dnssync_nc.DNSRecord.new(record_type = template_record_data["type"], hostname = self._subs(template_record_data["hostname"], template_vars), destination = self._subs(template_record_data["destination"], template_vars), priority = template_record_data.get("priority"))
+		return dnssync_nc.DNSRecord.new(record_type = template_record_data["type"], hostname = self._subs(template_record_data["hostname"], template_vars), destination = self._parse_destination(self._subs(template_record_data["destination"], template_vars)), priority = template_record_data.get("priority"))
 
 	def _process_domain_layout(self, domain_layout, new_dns_records):
 		if self._args.verbose >= 2:
 			print("Layout of domain %s consists of %d DNS records." % (domain_layout["domain"], len(new_dns_records)))
+			if self._args.verbose >= 3:
+				new_record_set = dnssync_nc.DNSRecordSet.from_records(domain_layout["domain"], new_dns_records)
+				new_record_set.dump()
 
 		current_dns_records = self._nc.info_dns_records(domain_layout["domain"])
 		if (self._args.verbose >= 2) or (not self._args.commit):
@@ -121,7 +133,7 @@ class NetcupCLI():
 
 			try:
 				self._process_domain_layout(domain_layout, new_dns_records)
-			except dnssync_nc.NetcupAPIError as e:
+			except dnssync_nc.DNSSyncError as e:
 				print("Failed to update %s: [%s] %s" % (domain_layout["domain"], e.__class__.__name__, str(e)))
 
 	def run(self):

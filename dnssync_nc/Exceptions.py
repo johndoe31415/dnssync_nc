@@ -1,5 +1,5 @@
 #	dnssync_nc - DNS API interface for the ISP netcup
-#	Copyright (C) 2020-2020 Johannes Bauer
+#	Copyright (C) 2020-2021 Johannes Bauer
 #
 #	This file is part of dnssync_nc.
 #
@@ -19,5 +19,9 @@
 #
 #	Johannes Bauer <JohannesBauer@gmx.de>
 
-class NetcupAPIError(Exception): pass
+class DNSSyncError(Exception): pass
+
+class NetcupAPIError(DNSSyncError): pass
 class ServerResponseError(NetcupAPIError): pass
+
+class ConfigurationSyntaxError(DNSSyncError): pass
