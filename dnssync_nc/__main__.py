@@ -39,14 +39,14 @@ class NetcupCLI():
 	def _parse_dns_record(self, record_data):
 		return dnssync_nc.DNSRecord.new(record_type = record_data["type"], hostname = record_data["hostname"], destination = self._parse_destination(record_data["destination"]), priority = record_data.get("priority"))
 
-	@staticmethod
-	def _subs(text, variables):
+	@classmethod
+	def _subs(cls, text, variables):
 		if isinstance(text, str):
 			for (search, replace) in variables.items():
 				text = text.replace(search, replace)
 			return text
 		else:
-			return { key: self._subs(value) for (key, value) in text.items() }
+			return { key: cls._subs(value, variables = variables) for (key, value) in text.items() }
 
 	def _parse_dns_template(self, template_record_data, template_vars):
 		return dnssync_nc.DNSRecord.new(record_type = template_record_data["type"], hostname = self._subs(template_record_data["hostname"], template_vars), destination = self._parse_destination(self._subs(template_record_data["destination"], template_vars)), priority = template_record_data.get("priority"))
