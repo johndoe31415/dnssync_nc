@@ -1,5 +1,5 @@
 #	dnssync_nc - DNS API interface for the ISP netcup
-#	Copyright (C) 2020-2021 Johannes Bauer
+#	Copyright (C) 2020-2022 Johannes Bauer
 #
 #	This file is part of dnssync_nc.
 #
@@ -157,6 +157,7 @@ class DNSRecordSet():
 
 	@classmethod
 	def deserialize(cls, domainname, data):
+		assert(isinstance(data, dict))
 		record_set = cls(domainname = domainname)
 		for record_data in data["dnsrecords"]:
 			record_set.add(DNSRecord.deserialize(record_data))

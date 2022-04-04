@@ -1,5 +1,5 @@
 #	dnssync_nc - DNS API interface for the ISP netcup
-#	Copyright (C) 2020-2020 Johannes Bauer
+#	Copyright (C) 2020-2022 Johannes Bauer
 #
 #	This file is part of dnssync_nc.
 #
@@ -46,7 +46,7 @@ class DNSZone():
 
 	@classmethod
 	def debug_values(cls, domainname):
-		return cls(domainname = domainname, ttl = 300, refresh = 3600, retry = 3600, expire = 1209600, serial = None, dnssec = False)
+		return cls(domainname = domainname, ttl = 300, refresh = 1800, retry = 1800, expire = 1209600, serial = None, dnssec = False)
 
 	@property
 	def domainname(self):
@@ -90,6 +90,12 @@ class DNSZone():
 			"dnssecstatus":	self.dnssec,
 		}
 		return result
+
+	def __eq__(self, other):
+		return (self.domainname == other.domainname) and (self.ttl == other.ttl) and (self.refresh == other.refresh) and (self.retry == other.retry) and (self.expire == other.expire) and (self.dnssec == other.dnssec)
+
+	def __neq__(self, other):
+		return not (self == other)
 
 	def __str__(self):
 		return "DNSZone<%s, TTL %d, Refresh %d, Retry %d, Expire %d, DNSSec %s>" % (self.domainname, self.ttl, self.refresh, self.retry, self.expire, [ "off", "on" ][self.dnssec])

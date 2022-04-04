@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #	dnssync_nc - DNS API interface for the ISP netcup
-#	Copyright (C) 2020-2021 Johannes Bauer
+#	Copyright (C) 2020-2022 Johannes Bauer
 #
 #	This file is part of dnssync_nc.
 #
@@ -50,6 +50,17 @@ class NetcupCLI():
 
 	def _parse_dns_template(self, template_record_data, template_vars):
 		return dnssync_nc.DNSRecord.new(record_type = template_record_data["type"], hostname = self._subs(template_record_data["hostname"], template_vars), destination = self._parse_destination(self._subs(template_record_data["destination"], template_vars)), priority = template_record_data.get("priority"))
+
+	def _process_domain_zone(self, domain_layout, zone):
+		current_dns_zone = self._nc.info_dns_zone(domain_layout["domain"])
+		if (self._args.verbose >= 2) or (not self._args.commit):
+			print("Current DNS zoneinfo: %s" % (current_dns_zone))
+
+		new_dns_zone = dnssync_nc.DNSZone(domainname = domain_layout["domain"], ttl = zone["ttl"], refresh = zone["refresh"], retry = zone["retry"], expire = zone["expire"], dnssec = zone["dnssec"], serial = None)
+		if new_dns_zone != current_dns_zone:
+			if (self._args.verbose >= 2) or (not self._args.commit):
+				print("New DNS zoneinfo: %s" % (new_dns_zone))
+			self._nc.update_dns_zone(new_dns_zone)
 
 	def _process_domain_layout(self, domain_layout, new_dns_records):
 		if self._args.verbose >= 2:
@@ -131,7 +142,20 @@ class NetcupCLI():
 				}
 				new_dns_records += [ self._parse_dns_template(template_record, template_vars) for template_record in template ]
 
+			zone = {
+				"ttl": layout.get("default_zone", { }).get("ttl", 86400),
+				"refresh": layout.get("default_zone", { }).get("refresh", 28800),
+				"retry": layout.get("default_zone", { }).get("retry", 7200),
+				"expire": layout.get("default_zone", { }).get("expire", 1209600),
+				"dnssec": layout.get("default_zone", { }).get("dnssec", False),
+			}
+			if "zone" in domain_layout:
+				for key in zone:
+					if key in domain_layout["zone"]:
+						zone[key] = domain_layout["zone"][key]
+
 			try:
+				self._process_domain_zone(domain_layout, zone)
 				self._process_domain_layout(domain_layout, new_dns_records)
 			except dnssync_nc.DNSSyncError as e:
 				print("Failed to update %s: [%s] %s" % (domain_layout["domain"], e.__class__.__name__, str(e)))

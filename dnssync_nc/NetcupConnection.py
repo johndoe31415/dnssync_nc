@@ -1,5 +1,5 @@
 #	dnssync_nc - DNS API interface for the ISP netcup
-#	Copyright (C) 2020-2021 Johannes Bauer
+#	Copyright (C) 2020-2022 Johannes Bauer
 #
 #	This file is part of dnssync_nc.
 #
@@ -105,7 +105,7 @@ class NetcupConnection():
 			"domainname":				dns_records.domainname,
 			"dnsrecordset":				dns_records.serialize(),
 		})
-		if response["status"] == 200:
+		if (response["status"] == 200) or (response["data"]["status"] != "ok"):
 			return DNSRecordSet.deserialize(dns_records.domainname, response["data"]["responsedata"])
 		else:
 			raise ServerResponseError("Unable to update DNS records:", response)
