@@ -1,5 +1,5 @@
 #	dnssync_nc - DNS API interface for the ISP netcup
-#	Copyright (C) 2020-2021 Johannes Bauer
+#	Copyright (C) 2020-2022 Johannes Bauer
 #
 #	This file is part of dnssync_nc.
 #
@@ -73,7 +73,7 @@ class DKIMHandler(SpecialDestinationHandler):
 				raise ConfigurationSyntaxError("RSA public key requires 'hash' field to be set.")
 			fields.append(("h", packet["hash"]))
 
-			pubkey = subprocess.check_output([ "openssl", "pkey", "-pubin", "-text", "-outform", "der" ], input = packet["pubkey"].encode())
+			pubkey = subprocess.check_output([ "openssl", "pkey", "-pubin", "-outform", "der" ], input = packet["pubkey"].encode())
 			key_data = base64.b64encode(pubkey).decode("ascii")
 			fields.append(("p", key_data))
 		else:
