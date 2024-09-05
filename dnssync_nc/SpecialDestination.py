@@ -66,8 +66,11 @@ class DKIMHandler(SpecialDestinationHandler):
 			assert(len(pubkey) == 32)
 			key_data = base64.b64encode(pubkey).decode("ascii")
 			fields.append(("p", key_data))
-		elif b"RSA Public-Key:" in pubkey:
-			# RSA
+		elif (b"RSA Public-Key:" in pubkey) or (b"Exponent: 65537 (0x10001)" in pubkey):
+			# RSA in early OpenSSL versions uses the former syntax; on latter
+			# versions this isn't obvious anymore and so we're looking for the
+			# 65537 exponent, which should be a dead giveaway (but it's not a
+			# clean implementation).
 			fields.append(("k", "rsa"))
 			if "hash" not in packet:
 				raise ConfigurationSyntaxError("RSA public key requires 'hash' field to be set.")
