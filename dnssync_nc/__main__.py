@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #	dnssync_nc - DNS API interface for the ISP netcup
-#	Copyright (C) 2020-2022 Johannes Bauer
+#	Copyright (C) 2020-2025 Johannes Bauer
 #
 #	This file is part of dnssync_nc.
 #
@@ -36,8 +36,12 @@ class NetcupCLI():
 		else:
 			return dnssync_nc.SpecialDestination.parse(packet)
 
-	def _parse_dns_record(self, record_data):
-		return dnssync_nc.DNSRecord.new(record_type = record_data["type"], hostname = record_data["hostname"], destination = self._parse_destination(record_data["destination"]), priority = record_data.get("priority"))
+	def _parse_dns_record(self, record_data: dict):
+		if "action" in record_data:
+			# This is a meta-record
+			return dnssync_nc.DNSMetaRecord(action = record_data["action"], record_type = record_data.get("type"), hostname = record_data.get("hostname"), destination = record_data.get("destination"))
+		else:
+			return dnssync_nc.DNSRecord.new(record_type = record_data["type"], hostname = record_data["hostname"], destination = self._parse_destination(record_data["destination"]), priority = record_data.get("priority"))
 
 	@classmethod
 	def _subs(cls, text, variables):
@@ -54,7 +58,7 @@ class NetcupCLI():
 	def _process_domain_zone(self, domain_layout, zone):
 		current_dns_zone = self._nc.info_dns_zone(domain_layout["domain"])
 		if (self._args.verbose >= 2) or (not self._args.commit):
-			print("Current DNS zoneinfo: %s" % (current_dns_zone))
+			print(f"Current DNS zoneinfo: {current_dns_zone}")
 
 		new_dns_zone = dnssync_nc.DNSZone(domainname = domain_layout["domain"], ttl = zone["ttl"], refresh = zone["refresh"], retry = zone["retry"], expire = zone["expire"], dnssec = zone["dnssec"], serial = None)
 		if new_dns_zone != current_dns_zone:
@@ -119,6 +123,22 @@ class NetcupCLI():
 			if self._args.verbose >= 1:
 				print("Not updating record of %s to live system (no commit requested)." % (domain_layout["domain"]))
 
+	def _process_dns_meta_records(self, dns_records: list):
+		resulting_dns_records = [ ]
+
+		for new_record in dns_records:
+			if isinstance(new_record, dnssync_nc.DNSRecord):
+				# Regular record, add
+				resulting_dns_records.append(new_record)
+			else:
+				# Meta record, special processing
+				if new_record.action == "remove-record":
+					resulting_dns_records = [ record for record in resulting_dns_records if not new_record.matches(record) ]
+				else:
+					raise ValueError(f"Unknown DNS meta record action: {new_record.action}")
+
+		return resulting_dns_records
+
 
 	def _process_layout(self, layout_file, layout):
 		if self._args.verbose >= 1:
@@ -130,7 +150,7 @@ class NetcupCLI():
 			if (len(self._args.domain_name) > 0) and (domain_name not in self._args.domain_name):
 				continue
 
-			new_dns_records = [ self._parse_dns_record(new_dns_record) for new_dns_record in domain_layout.get("records", [ ]) ]
+			new_dns_records = [ ]
 			if "template" in domain_layout:
 				template_name = domain_layout["template"]
 				if template_name not in known_templates:
@@ -141,6 +161,8 @@ class NetcupCLI():
 					"${domain}":	domain_name,
 				}
 				new_dns_records += [ self._parse_dns_template(template_record, template_vars) for template_record in template ]
+			new_dns_records += [ self._parse_dns_record(new_dns_record) for new_dns_record in domain_layout.get("records", [ ]) ]
+			new_dns_records = self._process_dns_meta_records(new_dns_records)
 
 			zone = {
 				"ttl": layout.get("default_zone", { }).get("ttl", 86400),

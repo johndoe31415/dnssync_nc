@@ -1,5 +1,5 @@
 #	dnssync_nc - DNS API interface for the ISP netcup
-#	Copyright (C) 2020-2021 Johannes Bauer
+#	Copyright (C) 2020-2025 Johannes Bauer
 #
 #	This file is part of dnssync_nc.
 #
@@ -20,7 +20,7 @@
 #	Johannes Bauer <JohannesBauer@gmx.de>
 
 from .DNSZone import DNSZone
-from .DNSRecords import DNSRecord, DNSRecordSet
+from .DNSRecords import DNSRecord, DNSRecordSet, DNSMetaRecord
 from .NetcupConnection import NetcupConnection
 from .Exceptions import DNSSyncError
 from .SpecialDestination import SpecialDestination

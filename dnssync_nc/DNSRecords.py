@@ -1,5 +1,5 @@
 #	dnssync_nc - DNS API interface for the ISP netcup
-#	Copyright (C) 2020-2022 Johannes Bauer
+#	Copyright (C) 2020-2025 Johannes Bauer
 #
 #	This file is part of dnssync_nc.
 #
@@ -18,6 +18,8 @@
 #	Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #
 #	Johannes Bauer <JohannesBauer@gmx.de>
+
+import dataclasses
 
 class DNSRecord():
 	def __init__(self, record_id, record_type, hostname, destination, priority):
@@ -180,3 +182,19 @@ class DNSRecordSet():
 
 	def __str__(self):
 		return "DNSRecordSet<%s: %d entries>" % (self.domainname, len(self))
+
+@dataclasses.dataclass
+class DNSMetaRecord():
+	action: str
+	record_type: str | None = None
+	hostname: str | None = None
+	destination: str | None = None
+
+	def matches(self, record: DNSRecord):
+		if (self.record_type is not None) and (self.record_type != record.record_type):
+			return False
+		if (self.hostname is not None) and (self.hostname != record.hostname):
+			return False
+		if (self.destination is not None) and (self.destination != record.destination):
+			return False
+		return True
