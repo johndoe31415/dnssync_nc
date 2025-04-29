@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #	dnssync_nc - DNS API interface for the ISP netcup
-#	Copyright (C) 2020-2020 Johannes Bauer
+#	Copyright (C) 2020-2025 Johannes Bauer
 #
 #	This file is part of dnssync_nc.
 #
@@ -20,4 +20,6 @@
 #
 #	Johannes Bauer <JohannesBauer@gmx.de>
 
-import dnssync_nc.__main__
+import sys
+from dnssync_nc.__main__ import main
+sys.exit(main())

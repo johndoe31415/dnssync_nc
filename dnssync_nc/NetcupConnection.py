@@ -1,5 +1,5 @@
 #	dnssync_nc - DNS API interface for the ISP netcup
-#	Copyright (C) 2020-2022 Johannes Bauer
+#	Copyright (C) 2020-2025 Johannes Bauer
 #
 #	This file is part of dnssync_nc.
 #
@@ -20,9 +20,9 @@
 #	Johannes Bauer <JohannesBauer@gmx.de>
 
 import json
+import collections
 import requests
-from .DNSZone import DNSZone
-from .DNSRecords import DNSRecord, DNSRecordSet
+from dnssync_nc import DNSZone, DNSRecord, DNSZoneLayout
 from .Exceptions import ServerResponseError
 
 class NetcupConnection():
@@ -52,7 +52,7 @@ class NetcupConnection():
 			"data":		response.json(),
 		}
 
-	def _session_action(self, action_name, params = None):
+	def _session_action(self, action_name: str, params = None):
 		if self._session_id is None:
 			print("Cannot execute '%s' without a valid session.", file = sys.stderr)
 			return
@@ -72,16 +72,16 @@ class NetcupConnection():
 			"customernumber":	str(self._credentials["customer"]),
 		})
 		if response["status"] == 200:
-			self._session_id = response["data"]["responsedata"]["apisessionid"]
+			if response["data"]["status"] == "success":
+				self._session_id = response["data"]["responsedata"]["apisessionid"]
+			else:
+				raise ServerResponseError(f"Login to netcup failed for customer ID {self._credentials['customer']}: {response['data']['longmessage']} (status code {response['data']['statuscode']})")
 		return response
 
 	def logout(self):
 		return self._session_action("logout")
 
-	def list_all_domains(self):
-		return self._session_action("listallDomains")
-
-	def info_dns_records(self, domainname):
+	def _info_dns_records(self, domainname: str):
 		response = self._session_action("infoDnsRecords", {
 			"domainname":				domainname,
 		})
@@ -89,28 +89,42 @@ class NetcupConnection():
 			raise ServerResponseError("Unable to retrieve DNS records (no HTTP 200):", response)
 		if response["data"]["status"] != "success":
 			raise ServerResponseError("Unable to retrieve DNS records (no 'success' status): %s" % (response["data"]["longmessage"]))
-		return DNSRecordSet.deserialize(domainname, response["data"]["responsedata"])
+		return [ DNSRecord.deserialize(record_dict) for record_dict in response["data"]["responsedata"]["dnsrecords"] ]
 
-	def info_dns_zone(self, domainname):
+	def _info_dns_zone(self, domainname: str):
 		response = self._session_action("infoDnsZone", {
 			"domainname":				domainname,
 		})
 		if response["status"] != 200:
 			raise ServerResponseError("Unable to retrieve DNS zone:", response)
+		if response["data"]["status"] != "success":
+			raise ServerResponseError(f"Unable to get DNS zone information customer ID {self._credentials['customer']}: {response['data']['longmessage']} (status code {response['data']['statuscode']})")
 		return DNSZone.deserialize(response["data"]["responsedata"])
 
-	def update_dns_records(self, dns_records):
-		assert(isinstance(dns_records, DNSRecordSet))
-		response = self._session_action("updateDnsRecords", {
-			"domainname":				dns_records.domainname,
-			"dnsrecordset":				dns_records.serialize(),
-		})
-		if (response["status"] == 200) or (response["data"]["status"] != "ok"):
-			return DNSRecordSet.deserialize(dns_records.domainname, response["data"]["responsedata"])
-		else:
-			raise ServerResponseError("Unable to update DNS records:", response)
+	def _get_dns_zone(self, domainname: str):
+		dns_zone = self._info_dns_zone(domainname)
+		dns_zone.entries += self._info_dns_records(domainname)
+		return dns_zone
 
-	def update_dns_zone(self, dns_zone):
+	def get_dns_zone_layout(self, domainnames: list[str]):
+		layout = collections.OrderedDict()
+		for domainname in domainnames:
+			layout[domainname] = self._get_dns_zone(domainname)
+		return DNSZoneLayout(layout)
+
+	def _update_dns_records(self, domainname: str, dns_record_set: list[dict]):
+		response = self._session_action("updateDnsRecords", {
+			"domainname": domainname,
+			"dnsrecordset": {
+				"dnsrecords": dns_record_set,
+			},
+		})
+		if response["status"] != 200:
+			raise ServerResponseError(f"Unable to update DNS records of {domainname}: HTTP {response['status']}")
+		if response["data"]["status"] != "success":
+			raise ServerResponseError(f"Unable to update DNS records of {domainname}: {response['data']['longmessage']} (status code {response['data']['statuscode']})")
+
+	def _update_dns_zone(self, dns_zone: DNSZone):
 		assert(isinstance(dns_zone, DNSZone))
 		response = self._session_action("updateDnsZone", {
 			"domainname":				dns_zone.domainname,
@@ -120,6 +134,44 @@ class NetcupConnection():
 			return DNSZone.deserialize(response["data"]["responsedata"])
 		else:
 			raise ServerResponseError("Unable to update DNS zone:", response)
+
+	def _push_dns_zone(self, current_zone: DNSZone, new_zone: DNSZone, show_diff: bool = False, commit: bool = False):
+		if current_zone != new_zone:
+			if show_diff:
+				print(f"-{current_zone}")
+				print(f"+{new_zone}")
+			if commit:
+				self._update_dns_zone(new_zone)
+
+		added_records = [ ]
+		current_records = set(current_zone.entries)
+		for new_record in new_zone.entries:
+			if new_record in current_records:
+				# Already present, no change necessary
+				current_records.remove(new_record)
+			else:
+				added_records.append(new_record)
+
+		removed_records = list(sorted(current_records))
+
+		if show_diff:
+			for record in removed_records:
+				print(f"-{current_zone.domainname} {record}")
+			for record in added_records:
+				print(f"+{current_zone.domainname} {record}")
+
+		if commit:
+			dns_record_set = [ ]
+			for record in removed_records:
+				dns_record_set.append(record.serialize(delete_record = True))
+			for record in added_records:
+				dns_record_set.append(record.serialize())
+			self._update_dns_records(current_zone.domainname, dns_record_set)
+
+	def push_dns_zone_layout(self, new_layout: DNSZoneLayout, show_diff: bool = False, commit: bool = False):
+		current_layout = self.get_dns_zone_layout(new_layout.domainnames)
+		for domainname in current_layout.domainnames:
+			self._push_dns_zone(current_layout[domainname], new_layout[domainname], show_diff = show_diff, commit = commit)
 
 	def __enter__(self):
 		self.login()

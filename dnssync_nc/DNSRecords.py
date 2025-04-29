@@ -19,182 +19,244 @@
 #
 #	Johannes Bauer <JohannesBauer@gmx.de>
 
+import re
+import sys
+import enum
+import collections
 import dataclasses
+import ipaddress
+from .Exceptions import ConfigurationSyntaxError
 
+class RecordType(enum.Enum):
+	A = "A"
+	AAAA = "AAAA"
+	MX = "MX"
+	TXT = "TXT"
+	NS = "NS"
+	CAA = "CAA"
+	CNAME = "CNAME"
+
+
+@dataclasses.dataclass(order = True, frozen = True, slots = True)
 class DNSRecord():
-	def __init__(self, record_id, record_type, hostname, destination, priority):
-		assert((record_id is None) or isinstance(record_id, int))
-		assert(isinstance(record_type, str))
-		assert(isinstance(hostname, str))
-		assert(isinstance(destination, str))
-		assert((priority is None) or isinstance(priority, int))
-		self._record_id = record_id
-		self._record_type = record_type
-		self._hostname = hostname
-		self._destination = destination
-		self._priority = priority
-		self._delete = False
+	record_type: RecordType
+	hostname: str
+	destination: str
+	priority: int | None = None	# Only used for MX
+	record_id: int | None = dataclasses.field(repr = None, default = None, compare = False)
 
 	@classmethod
-	def new(cls, record_type, hostname, destination, priority = None):
-		if record_type.upper() == "MX":
-			if priority is None:
-				priority = 10
-		return cls(record_id = None, record_type = record_type, hostname = hostname, destination = destination, priority = priority)
+	def deserialize(cls, data: dict):
+		record_type = RecordType(data["type"])
+		priority = int(data["priority"]) if (record_type == RecordType.MX) else None
+		return cls(record_type = record_type, hostname = data["hostname"], destination = data["destination"], priority = priority, record_id = int(data["id"]))
 
-	@property
-	def record_id(self):
-		return self._record_id
-
-	@property
-	def record_type(self):
-		return self._record_type
-
-	@property
-	def hostname(self):
-		return self._hostname
-
-	@property
-	def destination(self):
-		return self._destination
-
-	@property
-	def priority(self):
-		return self._priority
-
-	@property
-	def deleted(self):
-		return self._delete
-
-	def _cmpkey(self):
-		return (self.record_type, self.hostname, self.destination, self.priority)
-
-	def delete(self):
-		self._delete = True
-
-	def dump(self, prefix = ""):
-		components = [ ]
-		if self.record_id is not None:
-			components.append("[%10d]" % (self.record_id))
-		else:
-			components.append(" " * 12)
-		components.append("%-4s %s -> %s" % (self.record_type.upper(), self.hostname, self.destination))
-		if self.record_type.upper() == "MX":
-			components.append("priority %d" % (self.priority))
-		if self.deleted:
-			components.append("<DELETE>")
-		print(prefix + " ".join(components))
-
-	@classmethod
-	def deserialize(cls, data):
-		if "priority" in data:
-			priority = int(data["priority"])
-			if priority == 0:
-				priority = None
-		else:
-			priority = None
-		record = cls(record_id = int(data["id"]), record_type = data["type"], hostname = data["hostname"], destination = data["destination"], priority = priority)
-		if data.get("delete"):
-			record.delete()
-		return record
-
-	def serialize(self):
-		if self.deleted and (self.record_id is None):
-			# Delete entirely new record
-			return None
-
-		result = {
-			"id":			self.record_id,
-			"type":			self.record_type,
-			"hostname":		self.hostname,
-			"destination":	self.destination,
-			"deleterecord":	self.deleted,
-			"state":		None,
+	def serialize(self, delete_record: bool = False):
+		serialized = {
+			"type":				self.record_type.value,
+			"hostname":			self.hostname,
+			"destination":		self.destination,
+			"deleterecord":		delete_record,
+			"state":			None,
+			"id":				self.record_id,
 		}
 		if self.priority is not None:
-			result["priority"] = self.priority
+			serialized["priority"] = self.priority
+		return serialized
+
+	def __post_init__(self):
+		if (self.priority is not None) and (self.record_type != RecordType.MX):
+			raise ValueError(f"Priority only makes sense for MX records, this is a {self.record_type} record.")
+		if self.record_type == RecordType.A:
+			if ipaddress.ip_address(self.destination).version != 4:
+				raise ValueError(f"A record requires an IPv4 address, but got: {self.destination}")
+		if self.record_type == RecordType.AAAA:
+			if ipaddress.ip_address(self.destination).version != 6:
+				raise ValueError(f"AAAA record requires an IPv6 address, but got: {self.destination}")
+
+	def __format__(self, fmt_str: str):
+		if self.priority is None:
+			return f"{self.record_type.value}	{self.hostname}	{self.destination}"
+		else:
+			return f"{self.record_type.value}	{self.hostname}	{self.destination}	{self.priority}"
+
+
+@dataclasses.dataclass(order = True, slots = True)
+class DNSZone():
+	domainname: str
+	ttl: int = 86400
+	refresh: int = 28800
+	retry: int = 7200
+	expire: int = 1209600
+	dnssec: bool = False
+	serial: int | None = dataclasses.field(repr = None, default = None, compare = False)
+	entries: list[DNSRecord] = dataclasses.field(default_factory = list, compare = False)
+
+	@classmethod
+	def get_default_zone_values(cls):
+		empty_zone = cls("")
+		result = dataclasses.asdict(empty_zone)
+		del result["domainname"]
+		del result["entries"]
+		del result["serial"]
 		return result
 
-	def __eq__(self, other):
-		return isinstance(other, DNSRecord) and (self._cmpkey() == other._cmpkey())
-
-	def __neq__(self, other):
-		return not (self == other)
-
-	def __hash__(self):
-		return hash(self._cmpkey())
-
-	def __repr__(self):
-		return "DNSRecord<%s>" % (str(self._cmpkey()))
-
-class DNSRecordSet():
-	def __init__(self, domainname):
-		self._domainname = domainname
-		self._records = [ ]
-
-	@property
-	def domainname(self):
-		return self._domainname
-
 	@classmethod
-	def from_records(cls, domainname, dns_records):
-		dns_record_set = cls(domainname)
-		for dns_record in dns_records:
-			dns_record_set.add(dns_record)
-		return dns_record_set
-
-	def delete_all(self):
-		for record in self._records:
-			record.delete()
-
-	def delete_hostname(self, hostname):
-		for record in self._records:
-			if record.hostname == hostname:
-				record.delete()
-
-	def add(self, dns_record):
-		assert(isinstance(dns_record, DNSRecord))
-		self._records.append(dns_record)
-		return self
-
-	@classmethod
-	def deserialize(cls, domainname, data):
-		assert(isinstance(data, dict))
-		record_set = cls(domainname = domainname)
-		for record_data in data["dnsrecords"]:
-			record_set.add(DNSRecord.deserialize(record_data))
-		return record_set
+	def deserialize(cls, data: dict):
+		return cls(domainname = data["name"], ttl = int(data["ttl"]), serial = int(data["serial"]), refresh = int(data["refresh"]), retry = int(data["retry"]), expire = int(data["expire"]), dnssec = data["dnssecstatus"])
 
 	def serialize(self):
-		records = [ dns_record.serialize() for dns_record in self._records ]
-		records = [ record for record in records if record is not None ]
-		return { "dnsrecords": records }
+		return {
+			"name":				self.domainname,
+			"ttl":				self.ttl,
+			"refresh":			self.refresh,
+			"retry":			self.retry,
+			"expire":			self.expire,
+			"dnssecstatus":		self.dnssec,
+		}
 
-	def __len__(self):
-		return len(self._records)
+	def print(self, f: "io.TextIOWrapper" = sys.stdout):
+		default = DNSZone("")
+		if self.serial is not None:
+			print(f"# {self.domainname} serial {self.serial}")
+		print(f"{self.domainname}")
+		if self.ttl != default.ttl:
+			print(f"	.ttl	{self.ttl}")
+		if self.refresh != default.refresh:
+			print(f"	.refresh	{self.refresh}")
+		if self.retry != default.retry:
+			print(f"	.retry	{self.retry}")
+		if self.expire != default.expire:
+			print(f"	.expire	{self.expire}")
+		if self.dnssec != default.dnssec:
+			print(f"	.dnssec	{self.dnssec}")
+		seen = set()
+		for record in self.entries:
+			if record in seen:
+				continue
+			seen.add(record)
+			print(f"	{record}")
 
-	def __iter__(self):
-		return iter(self._records)
+	@staticmethod
+	def _tobool(str_bool: str):
+		if str_bool.lower() in set([ "y", "yes", "true", "on", "1" ]):
+			return True
+		elif str_bool.lower() in set([ "n", "no", "false", "off", "0" ]):
+			return False
+		else:
+			raise ValueError(f"Not a valid boolean value: {str_bool}")
 
-	def dump(self):
-		for (rec_no, record) in enumerate(self, 1):
-			record.dump(prefix = "    %2d) " % (rec_no))
+	def set_from_string(self, key: str, value: str):
+		if key in set([ "ttl", "refresh", "retry", "expire" ]):
+			setattr(self, key, int(value))
+		if key == "dnssec":
+			setattr(self, key, self._tobool(value))
 
 	def __str__(self):
-		return "DNSRecordSet<%s: %d entries>" % (self.domainname, len(self))
+		return "DNSZone<%s, TTL %d, Refresh %d, Retry %d, Expire %d, DNSSec %s>" % (self.domainname, self.ttl, self.refresh, self.retry, self.expire, [ "off", "on" ][self.dnssec])
 
-@dataclasses.dataclass
-class DNSMetaRecord():
-	action: str
-	record_type: str | None = None
-	hostname: str | None = None
-	destination: str | None = None
 
-	def matches(self, record: DNSRecord):
-		if (self.record_type is not None) and (self.record_type != record.record_type):
-			return False
-		if (self.hostname is not None) and (self.hostname != record.hostname):
-			return False
-		if (self.destination is not None) and (self.destination != record.destination):
-			return False
-		return True
+class DNSZoneLayout():
+	def __init__(self, layout: collections.OrderedDict):
+		self._layout = layout
+
+	@property
+	def domainnames(self):
+		return iter(self._layout)
+
+	def print(self, f: "io.TextIOWrapper" = sys.stdout):
+		for dns_zone in self._layout.values():
+			dns_zone.print(f = f)
+			print(file = f)
+
+	def filter_domainnames(self, domainnames: set[str]):
+		domainnames = set(domainnames)
+		filtered_layout = collections.OrderedDict()
+		for domainname in self._layout:
+			if domainname in domainnames:
+				filtered_layout[domainname] = self._layout[domainname]
+		return DNSZoneLayout(filtered_layout)
+
+	def __getitem__(self, domainname: str):
+		return self._layout[domainname]
+
+	def __repr__(self):
+		return repr(self._layout)
+
+
+class DNSZoneParser():
+	_LAYOUT_LINE_RE = re.compile("(?P<indent>\t*)(?P<content>.*)")
+	_CONTENT_RE = re.compile("\t+")
+
+	def __init__(self):
+		pass
+
+	def parse(self, dns_zone_text: str):
+		layout = collections.OrderedDict()
+		default_zone_values = DNSZone.get_default_zone_values()
+		current_zone = None
+
+		for (lineno, line) in enumerate(dns_zone_text.split("\n"), 1):
+			if line.lstrip().startswith("#"):
+				continue
+			if (rematch := self._LAYOUT_LINE_RE.fullmatch(line)) is None:
+				raise SyntaxError(f"Unable to parse line {lineno}: \"{line}\"")
+
+			indent = len(rematch["indent"])
+			if len(rematch["content"]) == 0:
+				content = [ ]
+			else:
+				content = self._CONTENT_RE.split(rematch["content"])
+
+			match (indent, content):
+				case (0, (domainname, )):
+					# New zone
+					current_zone = DNSZone(domainname = domainname, **default_zone_values)
+					layout[current_zone.domainname] = current_zone
+
+				case (0, (setting, value)) if setting.startswith("."):
+					setting = setting[1:]
+					if setting not in default_zone_values:
+						raise ConfigurationSyntaxError(f"Unable to set value '{setting}' in line {lineno}. Known values are {', '.join(sorted(default_zone_values))}.")
+
+				case (1, (record_type, hostname, destination)):
+					if current_zone is None:
+						raise ConfigurationSyntaxError(f"First need to start zone in line {lineno}.")
+					try:
+						record_type = RecordType(record_type)
+					except ValueError:
+						raise ConfigurationSyntaxError(f"Unknown record type {record_type} in line {lineno}.")
+					try:
+						current_zone.entries.append(DNSRecord(record_type = record_type, hostname = hostname, destination = destination))
+					except ValueError as e:
+						raise ConfigurationSyntaxError(f"Unable to parse DNS record in line {lineno}: {str(e)}") from e
+
+
+				case (1, (record_type, hostname, destination, priority)):
+					if current_zone is None:
+						raise ConfigurationSyntaxError(f"First need to start zone in line {lineno}.")
+					try:
+						record_type = RecordType(record_type)
+					except ValueError:
+						raise ConfigurationSyntaxError(f"Unknown record type {record_type} in line {lineno}.")
+					try:
+						current_zone.entries.append(DNSRecord(record_type = record_type, hostname = hostname, destination = destination, priority = int(priority)))
+					except ValueError as e:
+						raise ConfigurationSyntaxError(f"Unable to parse DNS record in line {lineno}: {str(e)}") from e
+
+				case (1, (setting, value)) if setting.startswith("."):
+					setting = setting[1:]
+					if setting not in default_zone_values:
+						raise ConfigurationSyntaxError(f"Unable to set value '{setting}' in line {lineno}. Known values are {', '.join(sorted(default_zone_values))}.")
+					try:
+						current_zone.set_from_string(setting, value)
+					except ValueError as e:
+						raise ConfigurationSyntaxError(f"Unable to set value '{setting}' to '{value}' in line {lineno}: {str(e)}") from e
+
+				case (0, ( )):
+					pass
+
+				case _:
+					raise SyntaxError(f"Unable to parse content line {lineno}, indent {indent}: \"{content}\"")
+
+		return DNSZoneLayout(layout)
