@@ -25,8 +25,10 @@ import enum
 import collections
 import dataclasses
 import ipaddress
+import functools
 from .Exceptions import ConfigurationSyntaxError
 
+@functools.total_ordering
 class RecordType(enum.Enum):
 	A = "A"
 	AAAA = "AAAA"
@@ -36,6 +38,8 @@ class RecordType(enum.Enum):
 	CAA = "CAA"
 	CNAME = "CNAME"
 
+	def __lt__(self, other: "RecordType"):
+		return self.value < other.value
 
 @dataclasses.dataclass(order = True, frozen = True, slots = True)
 class DNSRecord():
