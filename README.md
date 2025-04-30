@@ -225,8 +225,8 @@ override-domain.de
 The CLI is fairly straightforward, the help page is as follows:
 
 ```
-usage: dnssync-cli [-h] [-a {print,push,pull}] [-c filename] [-I path] [-C]
-                   [-s] [-d domainname] [-v]
+usage: dnssync-cli [-h] [--rendered-output filename] [-a {print,push,pull}]
+                   [-c filename] [-I path] [-C] [-s] [-d domainname] [-v]
                    layout_file/domainname [layout_file/domainname ...]
 
 Update DNS records using the netcup DNS API.
@@ -238,6 +238,9 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
+  --rendered-output filename
+                        Write the Mako-rendered output to a file. Can be
+                        useful to debug errors.
   -a, --action {print,push,pull}
                         Defines the action to take. Can be one of print, push,
                         pull, defaults to print.

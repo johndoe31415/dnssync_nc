@@ -47,6 +47,9 @@ class NetcupCLI():
 
 	def _parse_layout_file(self, layout_filename: str):
 		rendered = self._render_layout_file(layout_filename)
+		if self._args.rendered_output is not None:
+			with open(self._args.rendered_output, "w") as f:
+				f.write(rendered)
 		parser = dnssync_nc.DNSZoneParser()
 		layout = parser.parse(rendered)
 		return layout
@@ -77,6 +80,7 @@ class NetcupCLI():
 
 def main():
 	parser = FriendlyArgumentParser(description = "Update DNS records using the netcup DNS API.")
+	parser.add_argument("--rendered-output", metavar = "filename", help = "Write the Mako-rendered output to a file. Can be useful to debug errors.")
 	parser.add_argument("-a", "--action", choices = [ "print", "push", "pull" ], default = "print", help = "Defines the action to take. Can be one of %(choices)s, defaults to %(default)s.")
 	parser.add_argument("-c", "--credentials", metavar = "filename", default = "~/.config/dnssync_nc/credentials.json", help = "Specifies credential file to use. Defaults to %(default)s.")
 	parser.add_argument("-I", "--include-dir", metavar = "path", action = "append", default = [ ], help = "When rendering Mako templates, include this as a include directory as well. Can be specified multiple times.")
