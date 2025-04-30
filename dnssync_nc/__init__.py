@@ -23,3 +23,5 @@ from .DNSRecords import DNSZone, DNSRecord, DNSZoneParser, DNSZoneLayout
 from .NetcupConnection import NetcupConnection
 from .Exceptions import DNSSyncError
 from .EntryHelper import EntryHelper
+
+VERSION = "1.0.2"
