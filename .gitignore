@@ -1,4 +1,5 @@
-__pycache__
-credentials.json
-dns_layout.json
 .*.swp
+dns_layout.txt
+__pycache__
+dist
+dnssync_nc.egg-info
