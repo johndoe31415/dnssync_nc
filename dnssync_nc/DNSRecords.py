@@ -32,14 +32,17 @@ from .Exceptions import ConfigurationSyntaxError
 class RecordType(enum.Enum):
 	A = "A"
 	AAAA = "AAAA"
-	MX = "MX"
-	TXT = "TXT"
-	NS = "NS"
-	CAA = "CAA"
 	CNAME = "CNAME"
+	MX = "MX"
+	NS = "NS"
+	TXT = "TXT"
+	CAA = "CAA"
 
 	def __lt__(self, other: "RecordType"):
-		return self.value < other.value
+		return self._ORDER[self] < self._ORDER[other]
+
+RecordType._ORDER = { value: index for (index, value) in enumerate(RecordType) }
+
 
 @dataclasses.dataclass(order = True, frozen = True, slots = True)
 class DNSRecord():
@@ -119,7 +122,7 @@ class DNSZone():
 			"dnssecstatus":		self.dnssec,
 		}
 
-	def print(self, f: "io.TextIOWrapper" = sys.stdout):
+	def print(self, f: "io.TextIOWrapper" = sys.stdout, sort_records: bool = False):
 		default = DNSZone("")
 		if self.serial is not None:
 			print(f"# {self.domainname} serial {self.serial}")
@@ -135,7 +138,8 @@ class DNSZone():
 		if self.dnssec != default.dnssec:
 			print(f"	.dnssec	{self.dnssec}")
 		seen = set()
-		for record in self.entries:
+		iterator = sorted(self.entries) if sort_records else self.entries
+		for record in iterator:
 			if record in seen:
 				continue
 			seen.add(record)
@@ -168,9 +172,9 @@ class DNSZoneLayout():
 	def domainnames(self):
 		return iter(self._layout)
 
-	def print(self, f: "io.TextIOWrapper" = sys.stdout):
+	def print(self, f: "io.TextIOWrapper" = sys.stdout, sort_records: bool = False):
 		for dns_zone in self._layout.values():
-			dns_zone.print(f = f)
+			dns_zone.print(f = f, sort_records = sort_records)
 			print(file = f)
 
 	def filter_domainnames(self, domainnames: set[str]):
