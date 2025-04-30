@@ -24,4 +24,4 @@ from .NetcupConnection import NetcupConnection
 from .Exceptions import DNSSyncError
 from .EntryHelper import EntryHelper
 
-VERSION = "1.0.2"
+VERSION = "1.0.3rc0"
