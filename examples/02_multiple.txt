@@ -1,0 +1,9 @@
+<%
+	default_ipv4_address = "12.34.42.42"
+%>\
+%for domainname in [ "my-domain.de", "my-other-domain.com", "my-third-domain.to" ]:
+${domainname}
+	A	@	${default_ipv4_address}
+	A	*	${default_ipv4_address}
+	MX	*	${domainname}
+%endfor

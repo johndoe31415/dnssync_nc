@@ -1,0 +1,4 @@
+my-domain.de
+	A	@	12.34.42.42
+	A	*	12.34.42.42
+	MX	*	my-domain.de

@@ -1,0 +1,18 @@
+<%
+	default_ipv4_address = "12.34.42.42"
+	domainnames = [ "my-domain.de", "my-other-domain.com", "my-third-domain.to", "exceptional-domain.de", "my-fifth-domain.de" ]
+%>\
+%for domainname in domainnames:
+${domainname}
+	A	@	${default_ipv4_address}
+	A	*	${default_ipv4_address}
+	MX	*	${domainname}
+%endfor
+
+%for domainname in set(domainnames) - set([ "exceptional-domain.de" ]):
+${domainname}
+	TXT	@	v=spf1 mx -all
+%endfor
+
+exceptional-domain.de
+	TXT	@	v=spf1 include:third-party-mailsite.org ~all

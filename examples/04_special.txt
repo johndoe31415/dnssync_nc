@@ -1,0 +1,21 @@
+my-domain.de
+	A	@	12.34.42.42
+	A	*	12.34.42.42
+	MX	*	my-domain.de
+	${entry.dmarc(mailto = "dmarc@my-domain.de")}
+	${entry.dkim(keyname = "dkim202204", hashfnc = "sha256", pubkey = """
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAvVMIyJGMS6JqtvF8GWny
+v/tFGaMPlXz9jr8HF6ddi2HRHEplgz6bEZQjkymZiUvdutBKhQYVfHRn1j6Ml3fx
+TbsuETM4vuJWkgsuWhyFGqMyYCdlm/4zDPN9r9o+yjA7vWV45Ttce9GLGPyvGjik
+jfPRn0++Py3Vvh6qwOBsr3uDYoXinZ/UlN3evllIEaX7EWOY2RAdYY8P1Kuls89D
+vSp/Rcngxq0Nv/puhEpVsoRErM2iW+wrRUvPjwN8lc9IBMJrRpLEnN7VmbazlL5q
+vvkyBha8h2sXQc6G4RehhJ5qwNZ8KIIMJumzolFns2RK4gN61gZ5i1EjeR+WUSCc
+jQIDAQAB
+-----END PUBLIC KEY-----
+""")}
+	${entry.dkim(keyname = "dkim202504", pubkey = """
+-----BEGIN PUBLIC KEY-----
+MCowBQYDK2VwAyEAJo+ts7Bogx2/9R6qDZBvOjWf95FPi1hZOxpFoQW0f7k=
+-----END PUBLIC KEY-----
+""")}

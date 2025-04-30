@@ -1,0 +1,20 @@
+# These are the default parameters for the coming domains:
+.ttl 3600
+.retry 1234
+
+my-domain.de
+	A	@	12.34.42.42
+	A	*	12.34.42.42
+	MX	*	my-domain.de
+
+my-domain.de
+	A	@	12.34.42.42
+	A	*	12.34.42.42
+	MX	*	my-domain.de
+
+# This domain DNS zone has a special TTL
+override-domain.de
+	.ttl 999
+	A	@	12.34.42.42
+	A	*	12.34.42.42
+	MX	*	my-domain.de
