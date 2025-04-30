@@ -99,10 +99,9 @@ class DNSZone():
 	serial: int | None = dataclasses.field(repr = None, default = None, compare = False)
 	entries: list[DNSRecord] = dataclasses.field(default_factory = list, compare = False)
 
-	@classmethod
-	def get_default_zone_values(cls):
-		empty_zone = cls("")
-		result = dataclasses.asdict(empty_zone)
+	@property
+	def zone_values(self):
+		result = dataclasses.asdict(self)
 		del result["domainname"]
 		del result["entries"]
 		del result["serial"]
@@ -201,7 +200,8 @@ class DNSZoneParser():
 
 	def parse(self, dns_zone_text: str):
 		layout = collections.OrderedDict()
-		default_zone_values = DNSZone.get_default_zone_values()
+		default_zone = DNSZone("")
+		default_zone_values = default_zone.zone_values
 		current_zone = None
 
 		for (lineno, line) in enumerate(dns_zone_text.split("\n"), 1):
@@ -218,14 +218,19 @@ class DNSZoneParser():
 
 			match (indent, content):
 				case (0, (domainname, )):
-					# New zone
-					current_zone = DNSZone(domainname = domainname, **default_zone_values)
-					layout[current_zone.domainname] = current_zone
+					if domainname in layout:
+						# Append to defined zone
+						current_zone = layout[domainname]
+					else:
+						# New zone
+						current_zone = DNSZone(domainname = domainname, **default_zone.zone_values)
+						layout[current_zone.domainname] = current_zone
 
 				case (0, (setting, value)) if setting.startswith("."):
 					setting = setting[1:]
 					if setting not in default_zone_values:
 						raise ConfigurationSyntaxError(f"Unable to set value '{setting}' in line {lineno}. Known values are {', '.join(sorted(default_zone_values))}.")
+					default_zone.set_from_string(setting, value)
 
 				case (1, (record_type, hostname, destination)):
 					if current_zone is None:

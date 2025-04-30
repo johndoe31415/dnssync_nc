@@ -22,4 +22,4 @@
 from .DNSRecords import DNSZone, DNSRecord, DNSZoneParser, DNSZoneLayout
 from .NetcupConnection import NetcupConnection
 from .Exceptions import DNSSyncError
-from .SpecialDestination import SpecialDestination
+from .EntryHelper import EntryHelper

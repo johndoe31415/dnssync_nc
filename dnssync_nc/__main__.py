@@ -40,6 +40,7 @@ class NetcupCLI():
 		# Render the layout filename as a Mako template first
 		template = self._lookup.get_template(layout_filename)
 		template_vars = {
+			"entry": dnssync_nc.EntryHelper(),
 		}
 		rendered = template.render(**template_vars)
 		return rendered
