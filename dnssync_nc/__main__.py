@@ -91,8 +91,12 @@ def main():
 	parser.add_argument("domain_data", metavar = "layout_file/domainname", nargs = "+", help = "DNS layout file(s) when printing or pushing data or domainname(s) when pulling data.")
 	args = parser.parse_args(sys.argv[1:])
 
+	if (args.commit) and (args.action != "push"):
+		print(f"Incompatible arguments: commiting entries only makes sense when the 'push' action is used, but you are using the '{args.action}' action.")
+		return 1
+
 	cli = NetcupCLI(args)
-	cli.run()
+	return cli.run()
 
 if __name__ == "__main__":
-	main()
+	sys.exit(main())
