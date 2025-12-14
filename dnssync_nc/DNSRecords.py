@@ -37,6 +37,7 @@ class RecordType(enum.Enum):
 	NS = "NS"
 	TXT = "TXT"
 	CAA = "CAA"
+	SRV = "SRV"
 
 	def __lt__(self, other: "RecordType"):
 		return self._ORDER[self] < self._ORDER[other]
