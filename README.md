@@ -225,9 +225,9 @@ override-domain.de
 The CLI is fairly straightforward, the help page is as follows:
 
 ```
-usage: dnssync-cli [-h] [--rendered-output filename] [-a {print,push,pull}]
-                   [-c filename] [-I path] [-C] [-s] [-d domainname] [-v]
-                   layout_file/domainname [layout_file/domainname ...]
+usage: dnssync-nc-cli [-h] [--rendered-output filename] [-a {print,push,pull}]
+                      [-c filename] [-I path] [-C] [-s] [-d domainname] [-v]
+                      layout_file/domainname [layout_file/domainname ...]
 
 Update DNS records using the netcup DNS API.
 
@@ -243,7 +243,14 @@ options:
                         useful to debug errors.
   -a, --action {print,push,pull}
                         Defines the action to take. Can be one of print, push,
-                        pull, defaults to print.
+                        pull, defaults to print. 'print' prints the
+                        configuration as it was rendered by Mako, 'push'
+                        compares the generated configuration against the
+                        NetCup authoritative settings (and possibly sets them
+                        when --commit is given), 'pull' creates a
+                        configuration file from the current server settings
+                        (the domain names to pull are specified instead of a
+                        configuration filename).
   -c, --credentials filename
                         Specifies credential file to use. Defaults to
                         ~/.config/dnssync_nc/credentials.json.
@@ -260,6 +267,8 @@ options:
                         affected.
   -v, --verbose         Increases verbosity. Can be specified multiple times
                         to increase.
+
+dnssync_nc version 1.0.4
 ```
 
 There are three main actions:
@@ -274,7 +283,7 @@ There are three main actions:
 So when we want to verify records, we can simply do so by using `print`:
 
 ```
-$ dnssync-cli examples/01_simple.txt
+$ dnssync-nc-cli examples/01_simple.txt
 my-domain.de
 	A	@	12.34.42.42
 	A	*	12.34.42.42
@@ -288,7 +297,7 @@ used by default. When we have created that credentials file, we can pull data
 off netcup:
 
 ```
-$ dnssync-cli -a pull my-domain.de >current_config.txt
+$ dnssync-nc-cli -a pull my-domain.de >current_config.txt
 
 $ cat current_config.txt
 # my-domain.de serial 2025043019
@@ -309,7 +318,7 @@ changes). For example, let us change the A record to point to `9.9.9.9` and
 verify what would happen:
 
 ```
-$ dnssync-cli -a push current_config.txt
+$ dnssync-nc-cli -a push current_config.txt
 -my-domain.de A	@	11.22.33.44
 +my-domain.de A	@	9.9.9.9
 ```
@@ -320,7 +329,7 @@ Similarly, if you were to modify the TTL settings, this would also be shown.
 For example, let us additionally modify the TTL to be one hour:
 
 ```
-$ dnssync-cli -a push current_config.txt
+$ dnssync-nc-cli -a push current_config.txt
 -DNSZone<my-domain.de, TTL 300, Refresh 1800, Retry 1800, Expire 1209600, DNSSec off>
 +DNSZone<my-domain.de, TTL 3600, Refresh 1800, Retry 1800, Expire 1209600, DNSSec off>
 -my-domain.de A	@	11.22.33.44
@@ -331,7 +340,7 @@ Note that it now would also update the DNS zone data. If we actually want to
 push the data to netcup, we have to commit it:
 
 ```
-$ dnssync-cli -a push --commit current_config.txt
+$ dnssync-nc-cli -a push --commit current_config.txt
 -DNSZone<my-domain.de, TTL 300, Refresh 1800, Retry 1800, Expire 1209600, DNSSec off>
 +DNSZone<my-domain.de, TTL 3600, Refresh 1800, Retry 1800, Expire 1209600, DNSSec off>
 -my-domain.de A	@	11.22.33.44
