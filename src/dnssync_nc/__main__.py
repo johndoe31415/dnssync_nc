@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #	dnssync_nc - DNS API interface for the ISP netcup
-#	Copyright (C) 2020-2025 Johannes Bauer
+#	Copyright (C) 2020-2026 Johannes Bauer
 #
 #	This file is part of dnssync_nc.
 #
@@ -81,7 +81,7 @@ class NetcupCLI():
 def main():
 	parser = FriendlyArgumentParser(description = "Update DNS records using the netcup DNS API.")
 	parser.add_argument("--rendered-output", metavar = "filename", help = "Write the Mako-rendered output to a file. Can be useful to debug errors.")
-	parser.add_argument("-a", "--action", choices = [ "print", "push", "pull" ], default = "print", help = "Defines the action to take. Can be one of %(choices)s, defaults to %(default)s.")
+	parser.add_argument("-a", "--action", choices = [ "print", "push", "pull" ], default = "print", help = "Defines the action to take. Can be one of %(choices)s, defaults to %(default)s. 'print' prints the configuration as it was rendered by Mako, 'push' compares the generated configuration against the NetCup authoritative settings (and possibly sets them when --commit is given), 'pull' creates a configuration file from the current server settings (the domain names to pull are specified instead of a configuration filename).")
 	parser.add_argument("-c", "--credentials", metavar = "filename", default = "~/.config/dnssync_nc/credentials.json", help = "Specifies credential file to use. Defaults to %(default)s.")
 	parser.add_argument("-I", "--include-dir", metavar = "path", action = "append", default = [ ], help = "When rendering Mako templates, include this as a include directory as well. Can be specified multiple times.")
 	parser.add_argument("-C", "--commit", action = "store_true", help = "Actually update entries instead of the default, which is to perform a dry-run.")
