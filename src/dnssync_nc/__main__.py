@@ -77,7 +77,7 @@ class NetcupCLI():
 		return handler()
 
 def main():
-	parser = FriendlyArgumentParser(description = "Update DNS records using the netcup DNS API.")
+	parser = FriendlyArgumentParser(description = "Update DNS records using the netcup DNS API.", epilog = f"dnssync_nc version {dnssync_nc.VERSION}")
 	parser.add_argument("--rendered-output", metavar = "filename", help = "Write the Mako-rendered output to a file. Can be useful to debug errors.")
 	parser.add_argument("-a", "--action", choices = [ "print", "push", "pull" ], default = "print", help = "Defines the action to take. Can be one of %(choices)s, defaults to %(default)s. 'print' prints the configuration as it was rendered by Mako, 'push' compares the generated configuration against the NetCup authoritative settings (and possibly sets them when --commit is given), 'pull' creates a configuration file from the current server settings (the domain names to pull are specified instead of a configuration filename).")
 	parser.add_argument("-c", "--credentials", metavar = "filename", default = "~/.config/dnssync_nc/credentials.json", help = "Specifies credential file to use. Defaults to %(default)s.")
