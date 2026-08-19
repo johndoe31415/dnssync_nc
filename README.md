@@ -13,6 +13,16 @@ exceptionally useful if you are managing many domains with largely identical
 DNS settings.
 
 
+## Installation
+The easiest way to install this is via PIP
+
+```
+$ pip3 install dnssync-nc
+```
+
+Which will make the `dnssync-nc-cli` executable available for you.
+
+
 ## Older versions
 The file format in which DNS zones are implemented has radically changed from
 version v0.0.1 to v1.0.1, a clear breaking change. If you do still want to use
@@ -21,7 +31,9 @@ To get started with the new format, however, there is a new `pull` command that
 lets you pull the current DNS configuration off netcup and creates a text file
 from that which can be used to push the configuration. Note that the API
 documentation has been removed, it also has changed in v1.0.1 slightly but it
-should be straightforward to see how it works from `__main__.py`.
+should be straightforward to see how it works from `__main__.py`. Also note
+that the name of the CLI executable has changed; it was named `dnssync-cli` for
+versions <1.0.3 and is named `dnssync-nc-cli` for versions >=1.0.3.
 
 
 ## Affiliation
