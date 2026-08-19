@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "dnssync_nc"
 license = "GPL-3.0"
-version = "1.0.3rc0"
+version = "1.0.3"
 description = "DNS API interface for the ISP netcup"
 readme = "README.md"
 requires-python = ">=3.10"
