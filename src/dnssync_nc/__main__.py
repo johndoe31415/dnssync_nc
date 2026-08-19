@@ -20,12 +20,10 @@
 #
 #	Johannes Bauer <JohannesBauer@gmx.de>
 
-import re
 import os
 import sys
-import json
-import dnssync_nc
 import mako.lookup
+import dnssync_nc
 from .FriendlyArgumentParser import FriendlyArgumentParser
 
 class NetcupCLI():

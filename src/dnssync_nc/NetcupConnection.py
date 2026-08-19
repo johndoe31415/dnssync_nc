@@ -54,8 +54,8 @@ class NetcupConnection():
 
 	def _session_action(self, action_name: str, params = None):
 		if self._session_id is None:
-			print("Cannot execute '%s' without a valid session.", file = sys.stderr)
-			return
+			raise ValueError(f"Cannot execute action '{action_name}' without an established session.")
+
 		if params is None:
 			params = { }
 		params.update({
@@ -91,7 +91,7 @@ class NetcupConnection():
 			# "Can not get DNS records for zone. The zone does not contain any DNS records."
 			return [ ]
 		if response["data"]["status"] != "success":
-				raise ServerResponseError("Unable to retrieve DNS records (no 'success' status): %s" % (response["data"]["longmessage"]))
+			raise ServerResponseError("Unable to retrieve DNS records (no 'success' status): %s" % (response["data"]["longmessage"]))
 		return [ DNSRecord.deserialize(record_dict) for record_dict in response["data"]["responsedata"]["dnsrecords"] ]
 
 	def _info_dns_zone(self, domainname: str):

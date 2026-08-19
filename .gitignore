@@ -3,3 +3,4 @@ dns_layout.txt
 __pycache__
 dist
 dnssync_nc.egg-info
+.tpp_state.json

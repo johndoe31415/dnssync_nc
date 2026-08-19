@@ -1,5 +1,5 @@
 #	dnssync_nc - DNS API interface for the ISP netcup
-#	Copyright (C) 2020-2025 Johannes Bauer
+#	Copyright (C) 2020-2026 Johannes Bauer
 #
 #	This file is part of dnssync_nc.
 #
@@ -237,8 +237,8 @@ class DNSZoneParser():
 						raise ConfigurationSyntaxError(f"First need to start zone in line {lineno}.")
 					try:
 						record_type = RecordType(record_type)
-					except ValueError:
-						raise ConfigurationSyntaxError(f"Unknown record type {record_type} in line {lineno}.")
+					except ValueError as e:
+						raise ConfigurationSyntaxError(f"Unknown record type {record_type} in line {lineno}.") from e
 					try:
 						current_zone.entries.append(DNSRecord(record_type = record_type, hostname = hostname, destination = destination))
 					except ValueError as e:
@@ -250,8 +250,8 @@ class DNSZoneParser():
 						raise ConfigurationSyntaxError(f"First need to start zone in line {lineno}.")
 					try:
 						record_type = RecordType(record_type)
-					except ValueError:
-						raise ConfigurationSyntaxError(f"Unknown record type {record_type} in line {lineno}.")
+					except ValueError as e:
+						raise ConfigurationSyntaxError(f"Unknown record type {record_type} in line {lineno}.") from e
 					try:
 						current_zone.entries.append(DNSRecord(record_type = record_type, hostname = hostname, destination = destination, priority = int(priority)))
 					except ValueError as e:
