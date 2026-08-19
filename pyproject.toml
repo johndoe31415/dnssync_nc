@@ -1,0 +1,33 @@
+[build-system]
+requires = [ "setuptools>=77.0.3" ]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dnssync_nc"
+license = "GPL-3.0"
+version = "1.0.3rc0"
+description = "DNS API interface for the ISP netcup"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [ { name = "Johannes Bauer", email = "joe@johannes-bauer.com" } ]
+keywords = [ "netcup", "dns", "api" ]
+classifiers = [
+	"Programming Language :: Python :: 3",
+]
+dependencies = [ "mako" ]
+
+[project.urls]
+Homepage = "https://github.com/johndoe31415/dnssync_nc"
+Repository = "https://github.com/johndoe31415/dnssync_nc.git"
+Issues = "https://github.com/johndoe31415/dnssync_nc/issues"
+Releases = "https://github.com/johndoe31415/dnssync_nc/tags"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = false
+
+[tool.setuptools.packages.find]
+where = [ "src" ]
+
+[project.scripts]
+dnssync-nc-cli = "dnssync_nc.__main__:main"
